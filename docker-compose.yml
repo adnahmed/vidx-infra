@@ -106,20 +106,20 @@ services:
     networks:
       - proxy
       - default
-  labels:
-    - traefik.enable=true
-    # Router: send requests for clipifie.com to this container
-    - traefik.http.routers.clipifie.rule=Host(`clipifie.com`)
-    - traefik.http.routers.clipifie.entrypoints=websecure
-    - traefik.http.routers.clipifie.tls=true
-    - traefik.http.routers.clipifie.tls.certresolver=mytlschallenge
-    # Service: tell Traefik which internal port nginx listens on
-    - traefik.http.services.clipifie.loadbalancer.server.port=80
+    labels:
+      - traefik.enable=true
+      # Router: send requests for clipifie.com to this container
+      - traefik.http.routers.clipifie.rule=Host(`clipifie.com`)
+      - traefik.http.routers.clipifie.entrypoints=websecure
+      - traefik.http.routers.clipifie.tls=true
+      - traefik.http.routers.clipifie.tls.certresolver=mytlschallenge
+      # Service: tell Traefik which internal port nginx listens on
+      - traefik.http.services.clipifie.loadbalancer.server.port=80
 
-    # (optional) also redirect HTTP->HTTPS via web entrypoint
-    - traefik.http.routers.clipifie-redirect.rule=Host(`clipifie.com`)
-    - traefik.http.routers.clipifie-redirect.entrypoints=web
-    - traefik.http.routers.clipifie-redirect.middlewares=to-https@file
+      # (optional) also redirect HTTP->HTTPS via web entrypoint
+      - traefik.http.routers.clipifie-redirect.rule=Host(`clipifie.com`)
+      - traefik.http.routers.clipifie-redirect.entrypoints=web
+      - traefik.http.routers.clipifie-redirect.middlewares=to-https@file
 
 networks:
   proxy:
