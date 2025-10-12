@@ -1,0 +1,120 @@
+version: "3.9"
+
+name: vidx
+
+services:
+  # ---------- Backend FastAPI ----------
+  api: &backend_app
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile
+    image: vidx:${VIDX_VERSION:-latest}
+    restart: always
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8000/api/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    expose:
+      - "8000"
+    entrypoint: [ "docker-entrypoint.sh" ]
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    environment:
+      VIDX_HOST: 0.0.0.0
+      VIDX_DB_HOST: vidx-db
+      VIDX_DB_PORT: 27017
+      VIDX_DB_USER: vidx
+      VIDX_DB_PASS: vidx
+      VIDX_DB_BASE: admin
+      RABBITMQ_HOST: vidx-rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: vidx
+      RABBITMQ_PASS: vidx
+      RABBITMQ_BASE: /
+      FFMPEG_BINARY: /opt/ffmpeg_build/bin/ffmpeg
+      FFPROBE_BINARY: /opt/ffmpeg_build/bin/ffprobe
+    volumes:
+      - tmp-store:/tmp
+
+  db:
+    image: mongo:latest
+    hostname: vidx-db
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "vidx"
+      MONGO_INITDB_ROOT_PASSWORD: "vidx"
+    command: "mongod"
+    volumes:
+      - db-data:/data/db
+      - ./backend/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: vidx-rabbitmq
+    restart: always
+    expose:
+      - "5672"
+      - "15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: vidx
+      RABBITMQ_DEFAULT_PASS: vidx
+    volumes:
+      - config-rabbitmq:/var/lib/rabbitmq
+      - db-rabbitmq:/data
+
+  celery:
+    <<: *backend_app
+    ports: [] # Override ports with empty array to prevent port binding
+    depends_on:
+      api:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    entrypoint: [ "docker-entrypoint.sh" ]
+    command: poetry run start-celery
+
+  # ---------- Frontend ----------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ./Dockerfile
+      args:
+        REACT_APP_API_URL: "https://clipifie.com/api"
+    image: vidx-frontend:${FRONTEND_VERSION:-latest}
+    restart: always
+    expose:
+      - "80"
+
+  # ---------- Edge Nginx reverse-proxy ----------
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - frontend
+      - api
+    restart: always
+    ports:
+      - "80:80"
+      # - "443:443"   # (uncomment when you add TLS)
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+networks:
+  default:
+    name: vidx-net
+
+volumes:
+  db-data:
+  db-rabbitmq:
+  tmp-store:
+  config-rabbitmq:
