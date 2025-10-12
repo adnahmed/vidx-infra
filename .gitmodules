@@ -1,0 +1,8 @@
+[submodule "backend"]
+	path = backend
+	url = https://github.com/adnahmed/vidx
+	branch = master
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/adnahmed/vidx-app-1
+	branch = master
