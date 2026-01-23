@@ -95,7 +95,7 @@ services:
       context: ./frontend
       dockerfile: ./Dockerfile
       args:
-        REACT_APP_API_URL: "https://clipifie.com/api"
+        REACT_APP_API_URL: "http://localhost:8000/api"
     image: vidx-frontend:${FRONTEND_VERSION:-latest}
     restart: always
     expose:
