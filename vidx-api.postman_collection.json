@@ -1,0 +1,572 @@
+{
+    "info": {
+        "name": "Vidx API",
+        "description": "Postman collection for Vidx video processing and transcript API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "version": "1.0.0"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "task_id",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        },
+                        "description": "Check the health status of the API"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Register",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    const jsonData = pm.response.json();",
+                                    "    pm.collectionVariables.set('access_token', jsonData.access_token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"securePassword123\",\n    \"full_name\": \"John Doe\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "description": "Register a new user account"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const jsonData = pm.response.json();",
+                                    "    pm.collectionVariables.set('access_token', jsonData.access_token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"securePassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Login with email and password"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Google Login",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/auth/google/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "google",
+                                "login"
+                            ]
+                        },
+                        "description": "Initiate Google OAuth login flow"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Google Callback",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/auth/google/callback?code=AUTHORIZATION_CODE&state=STATE_TOKEN",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "google",
+                                "callback"
+                            ],
+                            "query": [
+                                {
+                                    "key": "code",
+                                    "value": "AUTHORIZATION_CODE"
+                                },
+                                {
+                                    "key": "state",
+                                    "value": "STATE_TOKEN"
+                                }
+                            ]
+                        },
+                        "description": "Google OAuth callback endpoint"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{access_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "Logout and revoke access token"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Video",
+            "item": [
+                {
+                    "name": "Merge Videos",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 202) {",
+                                    "    const jsonData = pm.response.json();",
+                                    "    pm.collectionVariables.set('task_id', jsonData.task_id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{access_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "videos",
+                                    "type": "file",
+                                    "src": [],
+                                    "description": "Video files to merge"
+                                },
+                                {
+                                    "key": "audio",
+                                    "type": "file",
+                                    "src": [],
+                                    "description": "Audio file (optional)"
+                                },
+                                {
+                                    "key": "transition",
+                                    "value": "fade",
+                                    "type": "text",
+                                    "description": "Transition type between videos"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/video/merge",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "video",
+                                "merge"
+                            ]
+                        },
+                        "description": "Merge multiple video files with optional audio and transitions"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Merge Status",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{access_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/video/merge/status?task_id={{task_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "video",
+                                "merge",
+                                "status"
+                            ],
+                            "query": [
+                                {
+                                    "key": "task_id",
+                                    "value": "{{task_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Get the status of a video merge task"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Merged Video",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{access_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/video/merge?task_id={{task_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "video",
+                                "merge"
+                            ],
+                            "query": [
+                                {
+                                    "key": "task_id",
+                                    "value": "{{task_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Download the merged video file"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Merge History",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{access_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/video/history?limit=20&offset=0",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "video",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "20",
+                                    "description": "Number of items to return (1-100)"
+                                },
+                                {
+                                    "key": "offset",
+                                    "value": "0",
+                                    "description": "Number of items to skip"
+                                }
+                            ]
+                        },
+                        "description": "Get user's video merge history"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Transcript",
+            "item": [
+                {
+                    "name": "Fetch Transcript",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"video_id\": \"dQw4w9WgXcQ\",\n    \"languages\": [\"en\"],\n    \"preserve_formatting\": false\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/transcript/fetch",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transcript",
+                                "fetch"
+                            ]
+                        },
+                        "description": "Fetch transcript for a YouTube video"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Transcripts",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/transcript/list/:video_id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transcript",
+                                "list",
+                                ":video_id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "video_id",
+                                    "value": "dQw4w9WgXcQ",
+                                    "description": "YouTube video ID"
+                                }
+                            ]
+                        },
+                        "description": "List all available transcripts for a video"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Translate Transcript",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"video_id\": \"dQw4w9WgXcQ\",\n    \"source_language\": \"en\",\n    \"target_language\": \"de\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/transcript/translate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transcript",
+                                "translate"
+                            ]
+                        },
+                        "description": "Translate a transcript to another language"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Fetch Manually Created Transcript",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/transcript/manually-created/:video_id?languages=en",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transcript",
+                                "manually-created",
+                                ":video_id"
+                            ],
+                            "query": [
+                                {
+                                    "key": "languages",
+                                    "value": "en",
+                                    "description": "Language codes (can be repeated)"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "video_id",
+                                    "value": "dQw4w9WgXcQ",
+                                    "description": "YouTube video ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch only manually created transcripts"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Fetch Auto-Generated Transcript",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/transcript/auto-generated/:video_id?languages=en",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transcript",
+                                "auto-generated",
+                                ":video_id"
+                            ],
+                            "query": [
+                                {
+                                    "key": "languages",
+                                    "value": "en",
+                                    "description": "Language codes (can be repeated)"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "video_id",
+                                    "value": "dQw4w9WgXcQ",
+                                    "description": "YouTube video ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch only auto-generated transcripts"
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

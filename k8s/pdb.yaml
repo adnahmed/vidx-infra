@@ -1,0 +1,32 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vidx-backend-pdb
+  namespace: vidx-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: vidx-backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vidx-worker-pdb
+  namespace: vidx-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: vidx-worker
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vidx-frontend-pdb
+  namespace: vidx-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: vidx-frontend

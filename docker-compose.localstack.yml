@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+  # LocalStack: AWS emulation
+  localstack:
+    image: localstack/localstack-pro:latest
+    container_name: vidx-localstack
+    ports:
+      - "4566:4566"  # LocalStack edge endpoint
+      - "4510-4559:4510-4559"  # LocalStack service ports
+      - "4571:4571"  # Additional service port
+    environment:
+      # Core services for VIDX
+      SERVICES: s3,sqs,dynamodb,lambda,ec2,ecr,ecs,eks,iam,kms,logs,cloudwatch,cloudformation,secretsmanager,sns,route53,acm,elasticache,rds
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
+      DEBUG: 0
+      PERSISTENCE: 1
+      DOCKER_HOST: unix:///var/run/docker.sock
+      VALIDATE_LAMBDA_S3: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${TMPDIR:-/tmp}/localstack:/tmp/localstack"
+      - ./localstack-init.sh:/docker-entrypoint-initaws.d/init.sh
+    networks:
+      - vidx-net
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "curl -s http://localhost:4566/_localstack/health | grep -q \"services\" || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # MongoDB for document storage
+  mongodb:
+    image: mongo:7
+    container_name: vidx-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: vidx
+      MONGO_INITDB_ROOT_PASSWORD: vidx
+      MONGO_INITDB_DATABASE: vidx
+    volumes:
+      - mongodb-local-data:/data/db
+    networks:
+      - vidx-net
+    healthcheck:
+      test: [
+        "CMD",
+        "mongosh",
+        "--eval",
+        "db.adminCommand('ping')",
+        "--authenticationDatabase",
+        "admin",
+        "-u",
+        "vidx",
+        "-p",
+        "vidx",
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ for message queueing
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: vidx-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: vidx
+      RABBITMQ_DEFAULT_PASS: vidx
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq-local-data:/var/lib/rabbitmq
+    networks:
+      - vidx-net
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongodb-local-data:
+  rabbitmq-local-data:
+
+networks:
+  vidx-net:
+    driver: bridge

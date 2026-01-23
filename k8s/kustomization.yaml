@@ -1,0 +1,52 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: vidx-infra
+
+namespace: vidx-prod
+
+resources:
+  - namespace.yaml
+  - network-policies.yaml  # Security: Network isolation
+  - mongodb-configmap.yaml
+  - mongodb-secret.yaml
+  - mongodb-statefulset.yaml
+  - rabbitmq-configmap.yaml
+  - rabbitmq-secret.yaml
+  - rabbitmq-statefulset.yaml
+  - backend-configmap.yaml
+  - backend-secret.yaml
+  - backend-deployment.yaml
+  - backend-hpa.yaml
+  - worker-deployment.yaml
+  - worker-hpa.yaml
+  - frontend-deployment.yaml
+  - frontend-hpa.yaml
+  - rbac.yaml
+  - pdb.yaml
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/name: vidx
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: vidx-infra
+  environment: production
+
+commonAnnotations:
+  description: "VIDX - Video Indexing Platform"
+  repository: "https://github.com/yourusername/vidx-infra"
+
+replicas:
+  - name: vidx-backend
+    count: 2
+  - name: vidx-worker
+    count: 2
+  - name: vidx-frontend
+    count: 2
+
+configMapGenerator:
+  - name: vidx-version
+    literals:
+      - version=1.0.0
+      - build-date=2024-01-17

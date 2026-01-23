@@ -1,0 +1,292 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vidx-backend
+  namespace: vidx-prod
+  labels:
+    app: vidx-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: vidx-backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vidx-backend
+  namespace: vidx-prod
+  labels:
+    app: vidx-backend
+    version: v1
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: vidx-backend
+  template:
+    metadata:
+      labels:
+        app: vidx-backend
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/api/metrics"
+    spec:
+      serviceAccountName: vidx-backend
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - vidx-backend
+                topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: wait-for-mongodb
+          image: busybox:1.35
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z mongodb.vidx-prod.svc.cluster.local 27017; do echo waiting for mongodb; sleep 2; done",
+            ]
+      containers:
+        - name: vidx-backend
+          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/vidx-backend:latest # Update with your ECR URI
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          # SECURITY: Resource limits prevent resource exhaustion attacks
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          # SECURITY: Enhanced security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false  # FFmpeg needs /tmp
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+          # SECURITY: Liveness and readiness probes
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          env:
+            - name: QUEUE_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: QUEUE_TYPE
+            - name: STORAGE_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: STORAGE_TYPE
+            - name: VIDX_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: VIDX_HOST
+            - name: VIDX_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: VIDX_PORT
+            - name: VIDX_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: VIDX_DB_HOST
+            - name: VIDX_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: VIDX_DB_PORT
+            - name: VIDX_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: VIDX_DB_USER
+            - name: VIDX_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: VIDX_DB_PASS
+            - name: VIDX_DB_BASE
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: VIDX_DB_BASE
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: RABBITMQ_PORT
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: RABBITMQ_PASS
+            - name: RABBITMQ_BASE
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: RABBITMQ_BASE
+            - name: FFMPEG_BINARY
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: FFMPEG_BINARY
+            - name: FFPROBE_BINARY
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: FFPROBE_BINARY
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: AWS_DEFAULT_REGION
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: AWS_S3_BUCKET
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: GOOGLE_CLIENT_ID
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: GOOGLE_CLIENT_SECRET
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vidx-backend-secret
+                  key: SECRET_KEY
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: vidx-backend-config
+                  key: LOG_LEVEL
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          # Readiness probe - application is ready to accept traffic
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          # Liveness probe - application is still running
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          # Startup probe - application has started
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 30
+          volumeMounts:
+            - name: tmp-storage
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: tmp-storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vidx-backend
+  namespace: vidx-prod

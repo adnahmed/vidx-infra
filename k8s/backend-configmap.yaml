@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vidx-backend-config
+  namespace: vidx-prod
+data:
+  VIDX_HOST: "0.0.0.0"
+  VIDX_PORT: "8000"
+  VIDX_DB_PORT: "27017"
+  VIDX_DB_BASE: "admin"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_BASE: "/"
+  FFMPEG_BINARY: "/usr/bin/ffmpeg"
+  FFPROBE_BINARY: "/usr/bin/ffprobe"
+  LOG_LEVEL: "INFO"
+  QUEUE_TYPE: "rabbitmq"
+  STORAGE_TYPE: "local"

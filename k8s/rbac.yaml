@@ -1,0 +1,56 @@
+---
+# Backend RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vidx-backend-role
+  namespace: vidx-prod
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vidx-backend-rolebinding
+  namespace: vidx-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vidx-backend-role
+subjects:
+  - kind: ServiceAccount
+    name: vidx-backend
+    namespace: vidx-prod
+---
+# Worker RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vidx-worker-role
+  namespace: vidx-prod
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vidx-worker-rolebinding
+  namespace: vidx-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vidx-worker-role
+subjects:
+  - kind: ServiceAccount
+    name: vidx-worker
+    namespace: vidx-prod

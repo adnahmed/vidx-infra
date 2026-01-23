@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: vidx-prod
+data:
+  rabbitmq.conf: |
+    default_user = vidx
+    default_pass = vidx
+    default_vhost = /
+    management.listener.port = 15672
+    listeners.ssl.backlog = 4096

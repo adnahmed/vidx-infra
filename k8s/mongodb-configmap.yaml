@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-init-config
+  namespace: vidx-prod
+data:
+  mongo-init.js: |
+    db = db.getSiblingDB('admin');
+    db.createUser({
+      user: 'vidx',
+      pwd: 'vidx',
+      roles: [{role: 'root', db: 'admin'}]
+    });
+    db = db.getSiblingDB('vidx');
+    db.createCollection('dummy');
