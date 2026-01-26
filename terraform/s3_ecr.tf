@@ -35,9 +35,9 @@ resource "aws_ecr_lifecycle_policy" "backend" {
         rulePriority = 2
         description  = "Keep last 5 untagged images"
         selection = {
-          tagStatus     = "untagged"
-          countType     = "imageCountMoreThan"
-          countNumber   = 5
+          tagStatus   = "untagged"
+          countType   = "imageCountMoreThan"
+          countNumber = 5
         }
         action = {
           type = "expire"
@@ -97,9 +97,9 @@ resource "aws_ecr_lifecycle_policy" "frontend" {
         rulePriority = 2
         description  = "Keep last 5 untagged images"
         selection = {
-          tagStatus     = "untagged"
-          countType     = "imageCountMoreThan"
-          countNumber   = 5
+          tagStatus   = "untagged"
+          countType   = "imageCountMoreThan"
+          countNumber = 5
         }
         action = {
           type = "expire"
@@ -267,7 +267,7 @@ resource "aws_iam_policy" "eks_s3_access" {
 
 # SQS Queue for video processing
 resource "aws_sqs_queue" "video_jobs" {
-  name                      = var.sqs_queue_name
+  name                       = var.sqs_queue_name
   visibility_timeout_seconds = var.sqs_visibility_timeout
   message_retention_seconds  = var.sqs_message_retention_seconds
 
@@ -281,25 +281,6 @@ output "sqs_queue_url" {
   value       = aws_sqs_queue.video_jobs.id
 }
 
-output "ecr_backend_repository_url" {
-  description = "ECR backend repository URL"
-  value       = aws_ecr_repository.backend.repository_url
-}
-
-output "ecr_frontend_repository_url" {
-  description = "ECR frontend repository URL"
-  value       = aws_ecr_repository.frontend.repository_url
-}
-
-output "s3_video_bucket_name" {
-  description = "S3 video storage bucket name"
-  value       = aws_s3_bucket.video_storage.bucket
-}
-
-output "s3_video_bucket_arn" {
-  description = "S3 video storage bucket ARN"
-  value       = aws_s3_bucket.video_storage.arn
-}
 
 output "kms_s3_key_id" {
   description = "KMS key ID for S3 encryption"

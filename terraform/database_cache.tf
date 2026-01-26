@@ -1,9 +1,7 @@
-"""
-AWS DynamoDB and ElastiCache resources for VIDX.
+/* AWS DynamoDB and ElastiCache resources for VIDX.
 
 This module defines the database and cache infrastructure for VIDX,
-supporting both local development (LocalStack) and AWS production.
-"""
+supporting both local development (LocalStack) and AWS production. */
 
 # ============================================================================
 # Data Sources for VPC
@@ -27,13 +25,13 @@ data "aws_subnets" "default" {
 # ============================================================================
 
 resource "aws_dynamodb_table" "vidx_items" {
-  name           = var.dynamodb_table_name
-  billing_mode   = "PAY_PER_REQUEST"  # On-demand pricing (good for variable workloads)
-  hash_key       = "id"
+  name         = var.dynamodb_table_name
+  billing_mode = "PAY_PER_REQUEST" # On-demand pricing (good for variable workloads)
+  hash_key     = "id"
 
   attribute {
     name = "id"
-    type = "S"  # String
+    type = "S" # String
   }
 
   # Enable point-in-time recovery for production
@@ -64,10 +62,10 @@ resource "aws_dynamodb_table" "vidx_items_gsi" {
   count      = var.enable_dynamodb_gsi ? 1 : 0
   depends_on = [aws_dynamodb_table.vidx_items]
 
-  name           = "${var.dynamodb_table_name}-gsi"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "type"
-  range_key      = "created_at"
+  name         = "${var.dynamodb_table_name}-gsi"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "type"
+  range_key    = "created_at"
 
   attribute {
     name = "type"
@@ -99,7 +97,7 @@ resource "aws_security_group" "elasticache" {
     from_port   = 6379
     to_port     = 6379
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # In production, restrict to app security group
+    cidr_blocks = ["0.0.0.0/0"] # In production, restrict to app security group
   }
 
   egress {
@@ -129,16 +127,16 @@ resource "aws_elasticache_subnet_group" "vidx" {
 
 # ElastiCache Redis cluster
 resource "aws_elasticache_cluster" "vidx" {
-  count              = var.enable_elasticache ? 1 : 0
-  cluster_id         = "${var.project_name}-redis"
-  engine             = "redis"
-  node_type          = var.elasticache_node_type  # e.g., "cache.t3.micro"
-  num_cache_nodes    = var.elasticache_num_nodes  # e.g., 1 for dev, 3+ for prod
+  count                = var.enable_elasticache ? 1 : 0
+  cluster_id           = "${var.project_name}-redis"
+  engine               = "redis"
+  node_type            = var.elasticache_node_type # e.g., "cache.t3.micro"
+  num_cache_nodes      = var.elasticache_num_nodes # e.g., 1 for dev, 3+ for prod
   parameter_group_name = aws_elasticache_parameter_group.vidx[0].name
-  engine_version     = var.elasticache_engine_version
-  port               = 6379
-  subnet_group_name  = var.use_localstack ? null : aws_elasticache_subnet_group.vidx[0].name
-  security_group_ids = [aws_security_group.elasticache.id]
+  engine_version       = var.elasticache_engine_version
+  port                 = 6379
+  subnet_group_name    = var.use_localstack ? null : aws_elasticache_subnet_group.vidx[0].name
+  security_group_ids   = [aws_security_group.elasticache.id]
 
   # Automatic failover for multi-node clusters
   automatic_failover_enabled = var.elasticache_num_nodes > 1 && !var.use_localstack
@@ -194,12 +192,12 @@ resource "aws_elasticache_parameter_group" "vidx" {
   # Redis 7.x performance parameters
   parameter {
     name  = "maxmemory-policy"
-    value = "allkeys-lru"  # Evict least recently used keys when memory is full
+    value = "allkeys-lru" # Evict least recently used keys when memory is full
   }
 
   parameter {
     name  = "timeout"
-    value = "300"  # Close idle connections after 300 seconds
+    value = "300" # Close idle connections after 300 seconds
   }
 
   parameter {

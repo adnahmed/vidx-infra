@@ -176,9 +176,9 @@ resource "aws_eks_node_group" "main" {
     min_size     = var.node_group_min_size
   }
 
-  instance_types  = var.node_group_instance_types
-  capacity_type   = var.node_group_capacity_type
-  disk_size       = var.node_group_disk_size
+  instance_types = var.node_group_instance_types
+  capacity_type  = var.node_group_capacity_type
+  disk_size      = var.node_group_disk_size
 
   tags = {
     Name = "${var.project_name}-node-group"
@@ -200,12 +200,12 @@ resource "aws_eks_node_group" "main" {
 
 # Optional GPU Node Group
 resource "aws_eks_node_group" "gpu" {
-  count            = var.gpu_node_group_enabled ? 1 : 0
-  cluster_name     = aws_eks_cluster.main.name
-  node_group_name  = var.gpu_node_group_name
-  node_role_arn    = aws_iam_role.eks_nodes.arn
-  subnet_ids       = aws_subnet.private[*].id
-  version          = var.eks_version
+  count           = var.gpu_node_group_enabled ? 1 : 0
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = var.gpu_node_group_name
+  node_role_arn   = aws_iam_role.eks_nodes.arn
+  subnet_ids      = aws_subnet.private[*].id
+  version         = var.eks_version
 
   scaling_config {
     desired_size = var.gpu_node_desired_size
@@ -265,21 +265,6 @@ resource "aws_cloudwatch_log_group" "eks_cluster" {
   tags = {
     Name = "${var.project_name}-eks-logs"
   }
-}
-
-output "eks_cluster_id" {
-  description = "EKS cluster ID"
-  value       = aws_eks_cluster.main.id
-}
-
-output "eks_cluster_arn" {
-  description = "EKS cluster ARN"
-  value       = aws_eks_cluster.main.arn
-}
-
-output "eks_cluster_endpoint" {
-  description = "EKS cluster endpoint"
-  value       = aws_eks_cluster.main.endpoint
 }
 
 output "eks_cluster_certificate_authority_data" {

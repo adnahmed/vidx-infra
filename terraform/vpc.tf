@@ -27,8 +27,8 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name                            = "${var.project_name}-public-subnet-${count.index + 1}"
-    "kubernetes.io/role/elb"        = "1"
+    Name                              = "${var.project_name}-public-subnet-${count.index + 1}"
+    "kubernetes.io/role/elb"          = "1"
     "kubernetes.io/role/internal-elb" = "0"
   }
 }
@@ -41,7 +41,7 @@ resource "aws_subnet" "private" {
   availability_zone = data.aws_availability_zones.available.names[count.index % length(data.aws_availability_zones.available.names)]
 
   tags = {
-    Name                            = "${var.project_name}-private-subnet-${count.index + 1}"
+    Name                              = "${var.project_name}-private-subnet-${count.index + 1}"
     "kubernetes.io/role/internal-elb" = "1"
   }
 }
@@ -76,8 +76,8 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block      = "0.0.0.0/0"
-    gateway_id      = aws_internet_gateway.main.id
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
   }
 
   tags = {
@@ -218,11 +218,6 @@ resource "aws_security_group_rule" "alb_egress_all" {
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.alb.id
   description       = "Allow all outbound traffic"
-}
-
-output "vpc_id" {
-  description = "VPC ID"
-  value       = aws_vpc.main.id
 }
 
 output "vpc_cidr" {
