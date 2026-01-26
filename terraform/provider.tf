@@ -50,60 +50,60 @@ provider "aws" {
     for_each = var.use_localstack ? [1] : []
     content {
       # Core AWS services
-      sts                = "http://localhost:4566"
-      ec2                = "http://localhost:4566"
-      iam                = "http://localhost:4566"
+      sts = "http://localhost:4566"
+      ec2 = "http://localhost:4566"
+      iam = "http://localhost:4566"
 
       # Container services
-      ecr                = "http://localhost:4566"
-      eks                = "http://localhost:4566"
-      ecs                = "http://localhost:4566"
+      ecr = "http://localhost:4566"
+      eks = "http://localhost:4566"
+      ecs = "http://localhost:4566"
 
       # Storage services
-      s3                 = "http://localhost:4566"
-      s3control          = "http://localhost:4566"
+      s3        = "http://localhost:4566"
+      s3control = "http://localhost:4566"
 
       # Database services
-      rds                = "http://localhost:4566"
-      dynamodb           = "http://localhost:4566"
+      rds      = "http://localhost:4566"
+      dynamodb = "http://localhost:4566"
 
       # Cache service (ElastiCache)
-      elasticache        = "http://localhost:4566"
+      elasticache = "http://localhost:4566"
 
       # Monitoring and logging
-      cloudwatch         = "http://localhost:4566"
-      logs               = "http://localhost:4566"
+      cloudwatch = "http://localhost:4566"
+      logs       = "http://localhost:4566"
 
       # Load balancing and auto scaling
-      elbv2              = "http://localhost:4566"
-      elb                = "http://localhost:4566"
-      autoscaling        = "http://localhost:4566"
+      elbv2       = "http://localhost:4566"
+      elb         = "http://localhost:4566"
+      autoscaling = "http://localhost:4566"
 
       # Security and encryption
-      secretsmanager     = "http://localhost:4566"
-      kms                = "http://localhost:4566"
-      acm                = "http://localhost:4566"
+      secretsmanager = "http://localhost:4566"
+      kms            = "http://localhost:4566"
+      acm            = "http://localhost:4566"
 
       # Messaging and functions
-      lambda             = "http://localhost:4566"
-      sqs                = "http://localhost:4566"
-      sns                = "http://localhost:4566"
+      lambda = "http://localhost:4566"
+      sqs    = "http://localhost:4566"
+      sns    = "http://localhost:4566"
 
       # Infrastructure as Code
-      cloudformation     = "http://localhost:4566"
+      cloudformation = "http://localhost:4566"
 
       # DNS
-      route53            = "http://localhost:4566"
+      route53 = "http://localhost:4566"
 
       # Additional services for comprehensive coverage
-      kinesis            = "http://localhost:4566"
-      firehose           = "http://localhost:4566"
-      apigateway         = "http://localhost:4566"
-      apigatewayv2       = "http://localhost:4566"
-      cloudtrail         = "http://localhost:4566"
-      config             = "http://localhost:4566"
-      events             = "http://localhost:4566"
-      xray               = "http://localhost:4566"
+      kinesis      = "http://localhost:4566"
+      firehose     = "http://localhost:4566"
+      apigateway   = "http://localhost:4566"
+      apigatewayv2 = "http://localhost:4566"
+      cloudtrail   = "http://localhost:4566"
+      config       = "http://localhost:4566"
+      events       = "http://localhost:4566"
+      xray         = "http://localhost:4566"
     }
   }
 
@@ -133,11 +133,15 @@ provider "helm" {
 }
 
 data "aws_eks_cluster" "cluster" {
-  name = module.eks.cluster_id
+  name = aws_eks_cluster.main.name
+
+  depends_on = [aws_eks_cluster.main]
 }
 
 data "aws_eks_cluster_auth" "cluster" {
-  name = module.eks.cluster_id
+  name = aws_eks_cluster.main.name
+
+  depends_on = [aws_eks_cluster.main]
 }
 
 data "aws_availability_zones" "available" {

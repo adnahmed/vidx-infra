@@ -57,9 +57,9 @@ resource "aws_iam_role_policy" "eks_cluster_logging" {
 
 # EKS Cluster
 resource "aws_eks_cluster" "main" {
-  name_prefix = "${var.project_name}-"
-  role_arn    = aws_iam_role.eks_cluster.arn
-  version     = var.eks_version
+  name     = "${var.project_name}-${var.environment}-${random_string.cluster_name_suffix.result}"
+  role_arn = aws_iam_role.eks_cluster.arn
+  version  = var.eks_version
 
   vpc_config {
     subnet_ids              = concat(aws_subnet.private[*].id, aws_subnet.public[*].id)

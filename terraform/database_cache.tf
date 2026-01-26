@@ -4,23 +4,6 @@ This module defines the database and cache infrastructure for VIDX,
 supporting both local development (LocalStack) and AWS production. */
 
 # ============================================================================
-# Data Sources for VPC
-# ============================================================================
-
-data "aws_vpc" "default" {
-  default = !var.use_localstack
-}
-
-data "aws_subnets" "default" {
-  count = var.use_localstack ? 0 : 1
-
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
-
-# ============================================================================
 # DynamoDB Table
 # ============================================================================
 
@@ -35,12 +18,12 @@ resource "aws_dynamodb_table" "vidx_items" {
   }
 
   # Enable point-in-time recovery for production
-  point_in_time_recovery_specification {
+  point_in_time_recovery {
     enabled = var.environment != "dev"
   }
 
   # Enable encryption at rest
-  server_side_encryption_specification {
+  server_side_encryption {
     enabled     = true
     kms_key_arn = var.use_localstack ? null : aws_kms_key.dynamodb[0].arn
   }
@@ -90,7 +73,7 @@ resource "aws_dynamodb_table" "vidx_items_gsi" {
 # Security group for ElastiCache
 resource "aws_security_group" "elasticache" {
   name_prefix = "${var.project_name}-elasticache-"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.main.id
 
   # Allow inbound Redis connections from application security group
   ingress {
@@ -117,7 +100,7 @@ resource "aws_security_group" "elasticache" {
 resource "aws_elasticache_subnet_group" "vidx" {
   count      = var.use_localstack ? 0 : 1
   name       = "${var.project_name}-subnet-group"
-  subnet_ids = data.aws_subnets.default[0].ids
+  subnet_ids = aws_subnet.private[*].id
 
   tags = {
     Name        = "${var.project_name}-elasticache-subnet-group"
@@ -126,45 +109,32 @@ resource "aws_elasticache_subnet_group" "vidx" {
 }
 
 # ElastiCache Redis cluster
-resource "aws_elasticache_cluster" "vidx" {
-  count                = var.enable_elasticache ? 1 : 0
-  cluster_id           = "${var.project_name}-redis"
-  engine               = "redis"
-  node_type            = var.elasticache_node_type # e.g., "cache.t3.micro"
-  num_cache_nodes      = var.elasticache_num_nodes # e.g., 1 for dev, 3+ for prod
-  parameter_group_name = aws_elasticache_parameter_group.vidx[0].name
-  engine_version       = var.elasticache_engine_version
-  port                 = 6379
-  subnet_group_name    = var.use_localstack ? null : aws_elasticache_subnet_group.vidx[0].name
-  security_group_ids   = [aws_security_group.elasticache.id]
-
-  # Automatic failover for multi-node clusters
+resource "aws_elasticache_replication_group" "vidx" {
+  count                      = var.enable_elasticache ? 1 : 0
+  replication_group_id       = "${var.project_name}-redis"
+  description                = "Redis replication group for ${var.project_name}"
+  engine                     = "redis"
+  engine_version             = var.elasticache_engine_version
+  node_type                  = var.elasticache_node_type
+  number_cache_clusters      = var.elasticache_num_nodes
+  parameter_group_name       = aws_elasticache_parameter_group.vidx[0].name
+  port                       = 6379
+  subnet_group_name          = var.use_localstack ? null : aws_elasticache_subnet_group.vidx[0].name
+  security_group_ids         = [aws_security_group.elasticache.id]
   automatic_failover_enabled = var.elasticache_num_nodes > 1 && !var.use_localstack
-
-  # Multi-AZ for production
-  multi_az_enabled = var.elasticache_num_nodes > 1 && var.environment != "dev"
-
-  # Encryption in transit
+  multi_az_enabled           = var.elasticache_num_nodes > 1 && var.environment != "dev"
   transit_encryption_enabled = !var.use_localstack
-  auth_token_enabled         = var.environment != "dev" && !var.use_localstack
-
-  # Enable automatic backups
-  snapshot_retention_limit = var.environment == "dev" ? 0 : 7
-  snapshot_window          = "03:00-05:00"
-
-  # Enable automatic minor version upgrades
+  at_rest_encryption_enabled = !var.use_localstack
+  snapshot_retention_limit   = var.environment == "dev" ? 0 : 7
+  snapshot_window            = "03:00-05:00"
   auto_minor_version_upgrade = true
+  maintenance_window         = "mon:03:00-mon:04:00"
 
-  # Maintenance window
-  maintenance_window = "mon:03:00-mon:04:00"
-
-  # Logging
   log_delivery_configuration {
     destination      = aws_cloudwatch_log_group.elasticache_slow_log[0].name
     destination_type = "cloudwatch-logs"
     log_format       = "json"
     log_type         = "slow-log"
-    enabled          = true
   }
 
   log_delivery_configuration {
@@ -172,7 +142,6 @@ resource "aws_elasticache_cluster" "vidx" {
     destination_type = "cloudwatch-logs"
     log_format       = "json"
     log_type         = "engine-log"
-    enabled          = var.environment != "dev"
   }
 
   tags = {
@@ -272,15 +241,15 @@ output "dynamodb_table_arn" {
 
 output "elasticache_endpoint" {
   description = "ElastiCache Redis primary endpoint"
-  value       = var.enable_elasticache ? aws_elasticache_cluster.vidx[0].cache_nodes[0].address : null
+  value       = var.enable_elasticache ? aws_elasticache_replication_group.vidx[0].primary_endpoint_address : null
 }
 
 output "elasticache_port" {
   description = "ElastiCache Redis port"
-  value       = var.enable_elasticache ? aws_elasticache_cluster.vidx[0].port : 6379
+  value       = var.enable_elasticache ? aws_elasticache_replication_group.vidx[0].port : 6379
 }
 
 output "elasticache_cluster_id" {
   description = "ElastiCache cluster ID"
-  value       = var.enable_elasticache ? aws_elasticache_cluster.vidx[0].cluster_id : null
+  value       = var.enable_elasticache ? aws_elasticache_replication_group.vidx[0].id : null
 }
