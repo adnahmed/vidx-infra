@@ -160,6 +160,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "video_storage" {
     id     = "archive-old-videos"
     status = "Enabled"
 
+    filter {
+      prefix = ""
+    }
+
     transition {
       days          = 90
       storage_class = "GLACIER"
@@ -173,6 +177,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "video_storage" {
   rule {
     id     = "delete-incomplete-multipart-upload"
     status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
