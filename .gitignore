@@ -1,1 +1,18 @@
 .env
+# Local .terraform folder
+.terraform/
+
+# State files (These should be stored in a Remote Backend like Azure Storage)
+*.tfstate
+*.tfstate.backup
+
+# Variable files that might contain secrets
+*.tfvars
+*.tfvars.json
+
+# Crash logs
+crash.log
+
+# Terraform RC files
+.terraformrc
+terraform.rc
