@@ -131,15 +131,15 @@ resource "aws_batch_compute_environment" "video_processing" {
   service_role             = aws_iam_role.batch_service_role.arn
 
   compute_resources {
-    type               = var.batch_compute_type # "EC2" or "SPOT"
-    allocationStrategy = var.batch_allocation_strategy
-    minvCpus           = var.batch_min_vcpus
-    maxvCpus           = var.batch_max_vcpus
-    desiredvCpus       = var.batch_desired_vcpus
-    instanceTypes      = var.batch_instance_types
-    subnets            = aws_subnet.private[*].id
-    security_group_ids = [aws_security_group.batch_sg.id]
-    instance_role      = aws_iam_instance_profile.batch_instance_profile.arn
+    type                = var.batch_compute_type # "EC2" or "SPOT"
+    allocation_strategy = var.batch_allocation_strategy
+    min_vcpus           = var.batch_min_vcpus
+    max_vcpus           = var.batch_max_vcpus
+    desired_vcpus       = var.batch_desired_vcpus
+    instance_types      = var.batch_instance_types
+    subnets             = aws_subnet.private[*].id
+    security_group_ids  = [aws_security_group.batch_sg.id]
+    instance_role       = aws_iam_instance_profile.batch_instance_profile.arn
 
     tags = {
       Name        = "${var.project_name}-batch-compute"

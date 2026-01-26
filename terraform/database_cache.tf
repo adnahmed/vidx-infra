@@ -116,7 +116,7 @@ resource "aws_elasticache_replication_group" "vidx" {
   engine                     = "redis"
   engine_version             = var.elasticache_engine_version
   node_type                  = var.elasticache_node_type
-  number_cache_clusters      = var.elasticache_num_nodes
+  num_cache_clusters         = var.elasticache_num_nodes
   parameter_group_name       = aws_elasticache_parameter_group.vidx[0].name
   port                       = 6379
   subnet_group_name          = var.use_localstack ? null : aws_elasticache_subnet_group.vidx[0].name
