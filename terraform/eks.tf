@@ -36,6 +36,12 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_resource_controller" {
   role       = aws_iam_role.eks_cluster.name
 }
 
+resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  role      =  aws_iam_role.eks_cluster.name
+}
+
+
 # Enable EKS Managed Logging
 resource "aws_iam_role_policy" "eks_cluster_logging" {
   name_prefix = "${var.project_name}-eks-logging-"
@@ -78,6 +84,7 @@ resource "aws_eks_cluster" "main" {
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy,
     aws_iam_role_policy_attachment.eks_vpc_resource_controller,
+    aws_iam_role_policy_attachment.eks_worker_node_policy
   ]
 }
 
