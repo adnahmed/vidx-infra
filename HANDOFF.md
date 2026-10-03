@@ -182,28 +182,46 @@ API → RabbitMQ → worker → status pipeline. (Full ffmpeg E2E is deferred.)
 
 ## 9. Render deployment
 
-The Render deployment is self-contained (Render offers no managed MongoDB or
-RabbitMQ): the backend container runs embedded MongoDB + Redis plus the Celery
-worker/beat, and the frontend is a static site.
+The deployment is split so each service fits comfortably in a 512 MB
+instance (an all-in-one container OOM-killed the 512 MB starter during
+concurrent FFmpeg work):
 
-- Blueprint: `render.yaml` (repo root). Services deploy from the
-  `feature/social-media` branches of the public repos.
-- Backend: `https://vidx-backend.onrender.com` (Docker, `adnahmed/vidx`,
-  `vidx-backend`), docker command `/usr/local/bin/render-entrypoint.sh`,
-  plain 512 MB starter instance.
-- Frontend: `https://vidx-frontend-b7fm.onrender.com` (static site,
-  `adnahmed/vidx-app-1`, built with `REACT_APP_API_URL=https://vidx-backend.onrender.com/api`).
-- Key backend env: `QUEUE_TYPE=redis`, `VIDX_EMBEDDED_MONGO=true`,
-  `VIDX_EMBEDDED_REDIS=true`, `VIDX_RUN_WORKER=true`,
-  `VIDX_AI_PROVIDER_MODE=simulated`, `VIDX_PUBLIC_BASE_URL`,
-  `VIDX_CORS_ORIGINS`, `VIDX_JWT_SECRET`, `VIDX_PROVIDER_WEBHOOK_SECRET`,
-  `VIDX_SCHEDULER_TOKEN`.
-- For production, point `VIDX_DB_*` at MongoDB Atlas and `RABBITMQ_*`
-  (or `REDIS_HOST/PORT/PASSWORD`) at managed services, and turn the
-  `VIDX_EMBEDDED_*` flags off.
-- The Dockerfile builds on `python:3.11-slim-bookworm` (bullseye is EOL and
-  its security pool now 404s); the custom gl-transition FFmpeg 4.4 build is
-  unchanged and reused for all rendering.
+- `vidx-backend` (web, Docker, `adnahmed/vidx`,
+  `https://vidx-backend.onrender.com`): FastAPI + embedded MongoDB + Redis.
+  MongoDB/Redis bind `0.0.0.0` and are reachable only over Render's private
+  network (the public route only maps the assigned port). `VIDX_RUN_WORKER=false`.
+- `vidx-worker` (web, worker-only mode, `dockerCommand=render-entrypoint.sh`):
+  Celery worker + beat with an HTTP health shim on `$PORT`; connects to
+  `vidx-backend:27017` / `vidx-backend:6379` over the private network.
+- `vidx-frontend` (static site, `adnahmed/vidx-app-1`,
+  `https://vidx-frontend-b7fm.onrender.com`): hash-routed SPA; the app uses
+  hash routing because Render static sites have no SPA rewrite rule.
+
+Artifact bridge: the worker and API have separate ephemeral filesystems, so
+`VIDX_STORAGE_REMOTE_BASE_URL` on the worker makes `LocalStorageStrategy`
+upload generated artifacts to `POST /api/internal/artifacts` (shared
+`VIDX_INTERNAL_TOKEN`) and download API-owned artifacts back through
+`/api/media/generated/*`. Local storage therefore behaves like a shared
+object store across containers.
+
+Memory/CPU guards: `VIDX_SIMULATED_MAX_CONCURRENCY=1`, `MALLOC_ARENA_MAX=2`,
+Redis `maxmemory 32-64mb`, and all FFmpeg renders use `-threads 1` +
+`x264-params threads=1:lookahead_threads=1` (libx264 otherwise allocates
+per-CPU thread buffers and OOMs small instances). Celery runs with
+`task_acks_late` + `task_reject_on_worker_lost` so a crashed render is
+redelivered instead of lost.
+
+Env summary: `QUEUE_TYPE=redis`, `VIDX_EMBEDDED_MONGO/REDIS=true` (API),
+`VIDX_AI_PROVIDER_MODE=simulated`, `VIDX_PUBLIC_BASE_URL`,
+`VIDX_CORS_ORIGINS`, `VIDX_JWT_SECRET`, `VIDX_PROVIDER_WEBHOOK_SECRET`,
+`VIDX_SCHEDULER_TOKEN`, `VIDX_INTERNAL_TOKEN`, `REDIS_PASSWORD`.
+`render.yaml` (repo root) documents the topology; services were created via
+the Render MCP, so blueprint sync is manual.
+
+For production, point `VIDX_DB_*` at MongoDB Atlas and Redis/RabbitMQ at
+managed services, disable the embedded flags, and configure real AI
+provider endpoints (`VIDX_AI_*_ENDPOINT/API_KEY/MODEL`) plus LinkedIn
+credentials.
 
 ## 10. Social Media module (added 2026-10-03)
 
