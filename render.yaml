@@ -1,10 +1,18 @@
 # Render Blueprint for vidx (Social Media module deployment).
 #
-# Render has no managed MongoDB or RabbitMQ, so the backend web service runs
-# embedded MongoDB + Redis and the Celery worker (with beat) inside the same
-# container via render-entrypoint.sh. Production deployments should instead
-# point VIDX_DB_* at MongoDB Atlas and REDIS_* / RABBITMQ_* at a managed
-# service and disable the embedded flags.
+# Render has no managed MongoDB or RabbitMQ. The deployment is split so each
+# service fits comfortably in a 512 MB instance:
+#
+#   vidx-backend  web service: FastAPI + embedded MongoDB/Redis.
+#                 MongoDB and Redis bind 0.0.0.0 and are reachable only over
+#                 Render's private network (the public route only maps the
+#                 service's assigned port).
+#   vidx-worker   web service (worker-only mode): Celery worker + beat with a
+#                 tiny HTTP health shim; connects to vidx-backend:27017/6379.
+#   vidx-frontend static site: the React app.
+#
+# For production, point VIDX_DB_* at MongoDB Atlas and REDIS_* / RABBITMQ_*
+# at managed services and disable the embedded flags.
 
 services:
   - type: web
@@ -31,20 +39,71 @@ services:
       - key: VIDX_EMBEDDED_REDIS
         value: "true"
       - key: VIDX_REDIS_MAXMEMORY
-        value: 96mb
+        value: 64mb
       - key: VIDX_RUN_WORKER
-        value: "true"
-      - key: VIDX_WORKER_CONCURRENCY
-        value: "1"
+        value: "false"
       - key: VIDX_AI_PROVIDER_MODE
         value: simulated
+      - key: VIDX_SIMULATED_MAX_CONCURRENCY
+        value: "1"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
       - key: VIDX_CORS_ORIGINS
-        value: https://vidx-frontend.onrender.com
+        value: https://vidx-frontend-b7fm.onrender.com
+      - key: REDIS_PASSWORD
+        sync: false
       - key: VIDX_JWT_SECRET
         sync: false
       - key: VIDX_PROVIDER_WEBHOOK_SECRET
         sync: false
       - key: VIDX_SCHEDULER_TOKEN
+        sync: false
+
+  - type: web
+    name: vidx-worker
+    runtime: docker
+    repo: https://github.com/adnahmed/vidx
+    branch: feature/social-media
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /usr/local/bin/render-entrypoint.sh
+    autoDeploy: false
+    envVars:
+      - key: VIDX_ENVIRONMENT
+        value: production
+      - key: QUEUE_TYPE
+        value: redis
+      - key: REDIS_HOST
+        value: vidx-backend
+      - key: REDIS_PORT
+        value: "6379"
+      - key: VIDX_DB_HOST
+        value: vidx-backend
+      - key: VIDX_DB_PORT
+        value: "27017"
+      - key: VIDX_DB_USER
+        value: vidx
+      - key: VIDX_DB_PASS
+        sync: false
+      - key: VIDX_RUN_WORKER
+        value: "true"
+      - key: VIDX_WORKER_ONLY
+        value: "true"
+      - key: VIDX_EMBEDDED_MONGO
+        value: "false"
+      - key: VIDX_EMBEDDED_REDIS
+        value: "false"
+      - key: VIDX_WORKER_CONCURRENCY
+        value: "1"
+      - key: VIDX_AI_PROVIDER_MODE
+        value: simulated
+      - key: VIDX_PUBLIC_BASE_URL
+        value: https://vidx-backend.onrender.com
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: REDIS_PASSWORD
         sync: false
 
   - type: web
