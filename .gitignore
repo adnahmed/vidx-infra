@@ -16,3 +16,6 @@ crash.log
 # Terraform RC files
 .terraformrc
 terraform.rc
+# Local agent tooling
+.opencode/
+terraform/.pluralith/
